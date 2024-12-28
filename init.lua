@@ -284,15 +284,16 @@ require('lazy').setup({
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     config = function() -- This is the function that runs, AFTER loading
-      require('which-key').setup()
+      local wk = require 'which-key'
+      wk.setup()
 
       -- Document existing key chains
-      require('which-key').register {
-        ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
-        ['<leader>d'] = { name = '[D]ocument', _ = 'which_key_ignore' },
-        ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
-        ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
-        ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
+      wk.add {
+        { '<leader>c', name = '[C]ode' },
+        { '<leader>d', name = '[D]ocument' },
+        { '<leader>r', name = '[R]ename' },
+        { '<leader>s', name = '[S]earch' },
+        { '<leader>w', name = '[W]orkspace' },
       }
     end,
   },
@@ -542,6 +543,7 @@ require('lazy').setup({
       -- Simisticot change
       -- Add none ls for python tools
       local null_ls = require 'null-ls'
+      local augroup = vim.api.nvim_create_augroup('LspFormatting', {})
       null_ls.setup {
         sources = {
           null_ls.builtins.formatting.black.with { prefer_local = '.venv/bin' },
@@ -549,6 +551,21 @@ require('lazy').setup({
           null_ls.builtins.formatting.isort.with { prefer_local = '.venv/bin' },
           require('none-ls.diagnostics.flake8').with { prefer_local = '.venv/bin' },
         },
+        -- below from null/none ls wiki
+        on_attach = function(client, bufnr)
+          if client.supports_method 'textDocument/formatting' then
+            vim.api.nvim_clear_autocmds { group = augroup, buffer = bufnr }
+            vim.api.nvim_create_autocmd('BufWritePre', {
+              group = augroup,
+              buffer = bufnr,
+              callback = function()
+                -- on 0.8, you should use vim.lsp.buf.format({ bufnr = bufnr }) instead
+                -- on later neovim version, you should use vim.lsp.buf.format({ async = false }) instead
+                vim.lsp.buf.format { async = false }
+              end,
+            })
+          end
+        end,
       }
 
       -- Enable the following language servers
@@ -578,7 +595,7 @@ require('lazy').setup({
           },
         },--]]
         pyright = {},
-        -- rust_analyzer = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
