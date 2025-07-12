@@ -113,7 +113,9 @@ vim.opt.showmode = false
 -- Sync clipboard between OS and Neovim.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
-vim.opt.clipboard = 'unnamedplus'
+vim.schedule(function()
+  vim.opt.clipboard = 'unnamedplus'
+end)
 
 -- Enable break indent
 vim.opt.breakindent = true
@@ -162,10 +164,16 @@ vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
-vim.keymap.set('n', '<leader>v', vim.diagnostic.goto_next, { desc = 'Go to next Diagnostic message' })
+vim.keymap.set('n', '[d', function()
+  vim.diagnostic.jump { count = 1, float = true }
+end, { desc = 'Go to previous [D]iagnostic message' })
+vim.keymap.set('n', '<leader>v', function()
+  vim.diagnostic.jump { count = 1, float = true }
+end, { desc = 'Go to next Diagnostic message' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+
+vim.diagnostic.config { virtual_text = true }
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -257,7 +265,23 @@ require('lazy').setup({
       },
     },
   },
-
+  {
+    'stevearc/oil.nvim',
+    opts = {},
+    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
+    lazy = false,
+  },
+  { 'vuciv/golf' },
+  {
+    'S1M0N38/love2d.nvim',
+    event = 'VeryLazy',
+    opts = {},
+    keys = {
+      { '<leader>v', ft = 'lua', desc = 'LÖVE' },
+      { '<leader>vv', '<cmd>LoveRun<cr>', ft = 'lua', desc = 'Run LÖVE' },
+      { '<leader>vs', '<cmd>LoveStop<cr>', ft = 'lua', desc = 'Stop LÖVE' },
+    },
+  },
   {
     'nvimtools/none-ls.nvim',
     dependencies = {
@@ -599,6 +623,7 @@ require('lazy').setup({
         rust_analyzer = {
           settings = {
             ['rust-analyzer'] = {
+              cargo = { allFeatures = true },
               checkOnSave = {
                 command = 'clippy',
               },
@@ -623,6 +648,9 @@ require('lazy').setup({
               completion = {
                 callSnippet = 'Replace',
               },
+              library = {
+                '{3rd}/love2d/library',
+              },
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
             },
@@ -641,12 +669,11 @@ require('lazy').setup({
       -- You can add other tools here that you want Mason to install
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, {
-        'stylua', -- Used to format Lua code
-      })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
+        ensure_installed = ensure_installed,
+        automatic_installation = {},
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
@@ -663,6 +690,7 @@ require('lazy').setup({
 
   { -- Autoformat
     'stevearc/conform.nvim',
+    version = '8.4.0',
     opts = {
       notify_on_error = false,
       format_on_save = function(bufnr)
