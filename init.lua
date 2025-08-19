@@ -571,10 +571,7 @@ require('lazy').setup({
       local augroup = vim.api.nvim_create_augroup('LspFormatting', {})
       null_ls.setup {
         sources = {
-          null_ls.builtins.formatting.black.with { prefer_local = '.venv/bin' },
           null_ls.builtins.diagnostics.mypy.with { prefer_local = '.venv/bin' },
-          null_ls.builtins.formatting.isort.with { prefer_local = '.venv/bin' },
-          require('none-ls.diagnostics.flake8').with { prefer_local = '.venv/bin' },
         },
         -- below from null/none ls wiki
         on_attach = function(client, bufnr)
@@ -619,7 +616,7 @@ require('lazy').setup({
             pyflakes = { enabled = false },
           },
         },--]]
-        pyright = {},
+        ruff = {},
         rust_analyzer = {
           settings = {
             ['rust-analyzer'] = {
@@ -705,6 +702,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        python = { 'ruff_fix', 'ruff_format', 'ruff_organize_imports' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
