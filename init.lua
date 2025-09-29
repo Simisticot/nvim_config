@@ -271,15 +271,36 @@ require('lazy').setup({
     dependencies = { { 'echasnovski/mini.icons', opts = {} } },
     lazy = false,
   },
+  {
+    {
+      "FabijanZulj/blame.nvim",
+      lazy = false,
+      config = function()
+        require('blame').setup {}
+      end,
+    },
+  },
+  {
+    "richardhapb/pytest.nvim",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    opts = {}, -- Define the options here
+    config = function(_, opts)
+      require('nvim-treesitter.configs').setup {
+        ensure_installed = { 'python', 'xml' },
+      }
+
+      require('pytest').setup(opts)
+    end
+  },
   { 'vuciv/golf' },
   {
     'S1M0N38/love2d.nvim',
     event = 'VeryLazy',
     opts = {},
     keys = {
-      { '<leader>v', ft = 'lua', desc = 'LÖVE' },
-      { '<leader>vv', '<cmd>LoveRun<cr>', ft = 'lua', desc = 'Run LÖVE' },
-      { '<leader>vs', '<cmd>LoveStop<cr>', ft = 'lua', desc = 'Stop LÖVE' },
+      { '<leader>v',  ft = 'lua',          desc = 'LÖVE' },
+      { '<leader>vv', '<cmd>LoveRun<cr>',  ft = 'lua',   desc = 'Run LÖVE' },
+      { '<leader>vs', '<cmd>LoveStop<cr>', ft = 'lua',   desc = 'Stop LÖVE' },
     },
   },
   {
@@ -304,7 +325,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  { -- Useful plugin to show you pending keybinds.
+  {                     -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     config = function() -- This is the function that runs, AFTER loading
@@ -351,7 +372,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -565,30 +586,6 @@ require('lazy').setup({
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
-      -- Simisticot change
-      -- Add none ls for python tools
-      local null_ls = require 'null-ls'
-      local augroup = vim.api.nvim_create_augroup('LspFormatting', {})
-      null_ls.setup {
-        sources = {
-          null_ls.builtins.diagnostics.mypy.with { prefer_local = '.venv/bin' },
-        },
-        -- below from null/none ls wiki
-        on_attach = function(client, bufnr)
-          if client.supports_method 'textDocument/formatting' then
-            vim.api.nvim_clear_autocmds { group = augroup, buffer = bufnr }
-            vim.api.nvim_create_autocmd('BufWritePre', {
-              group = augroup,
-              buffer = bufnr,
-              callback = function()
-                -- on 0.8, you should use vim.lsp.buf.format({ bufnr = bufnr }) instead
-                -- on later neovim version, you should use vim.lsp.buf.format({ async = false }) instead
-                vim.lsp.buf.format { async = true }
-              end,
-            })
-          end
-        end,
-      }
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
