@@ -173,6 +173,8 @@ end, { desc = 'Go to next Diagnostic message' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+vim.keymap.set('n', '<leader>t', '<cmd>cnext<CR>')
+
 vim.diagnostic.config { virtual_text = true }
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
