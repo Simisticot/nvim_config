@@ -275,24 +275,49 @@ require('lazy').setup({
   },
   {
     {
-      "FabijanZulj/blame.nvim",
+      'FabijanZulj/blame.nvim',
       lazy = false,
       config = function()
         require('blame').setup {}
       end,
     },
   },
+  { 'nvim-neotest/neotest-python' },
   {
-    "richardhapb/pytest.nvim",
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
-    opts = {}, -- Define the options here
-    config = function(_, opts)
-      require('nvim-treesitter.configs').setup {
-        ensure_installed = { 'python', 'xml' },
+    'nvim-neotest/neotest',
+    dependencies = {
+      'nvim-neotest/nvim-nio',
+      'nvim-lua/plenary.nvim',
+      'antoinemadec/FixCursorHold.nvim',
+      'nvim-treesitter/nvim-treesitter',
+    },
+    keys = {
+      { '<leader>nn', "<cmd>lua require('neotest').run.run()<cr>", desc = 'Run neared test' },
+      { '<leader>na', "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>", desc = 'Run neared test' },
+    },
+    config = function()
+      require('neotest').setup {
+        adapters = {
+          require 'neotest-python' {
+            -- Extra arguments for nvim-dap configuration
+            -- See https://github.com/microsoft/debugpy/wiki/Debug-configuration-settings for values
+            dap = { justMyCode = false },
+            -- Command line arguments for runner
+            -- Can also be a function to return dynamic values
+            args = { '--log-level', 'DEBUG' },
+            -- Runner to use. Will use pytest if available by default.
+            -- Can be a function to return dynamic value.
+            runner = 'pytest',
+            -- Custom python path for the runner.
+            -- Can be a string or a list of strings.
+            -- Can also be a function to return dynamic value.
+            -- If not provided, the path will be inferred by checking for
+            -- virtual envs in the local directory and for Pipenev/Poetry configs
+            python = '.venv/bin/python',
+          },
+        },
       }
-
-      require('pytest').setup(opts)
-    end
+    end,
   },
   { 'vuciv/golf' },
   {
@@ -300,9 +325,9 @@ require('lazy').setup({
     event = 'VeryLazy',
     opts = {},
     keys = {
-      { '<leader>v',  ft = 'lua',          desc = 'LÖVE' },
-      { '<leader>vv', '<cmd>LoveRun<cr>',  ft = 'lua',   desc = 'Run LÖVE' },
-      { '<leader>vs', '<cmd>LoveStop<cr>', ft = 'lua',   desc = 'Stop LÖVE' },
+      { '<leader>v', ft = 'lua', desc = 'LÖVE' },
+      { '<leader>vv', '<cmd>LoveRun<cr>', ft = 'lua', desc = 'Run LÖVE' },
+      { '<leader>vs', '<cmd>LoveStop<cr>', ft = 'lua', desc = 'Stop LÖVE' },
     },
   },
   {
@@ -327,7 +352,7 @@ require('lazy').setup({
   -- after the plugin has been loaded:
   --  config = function() ... end
 
-  {                     -- Useful plugin to show you pending keybinds.
+  { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     config = function() -- This is the function that runs, AFTER loading
@@ -374,7 +399,7 @@ require('lazy').setup({
       { 'nvim-telescope/telescope-ui-select.nvim' },
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
-      { 'nvim-tree/nvim-web-devicons',            enabled = vim.g.have_nerd_font },
+      { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -588,7 +613,6 @@ require('lazy').setup({
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
-
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -643,9 +667,6 @@ require('lazy').setup({
             Lua = {
               completion = {
                 callSnippet = 'Replace',
-              },
-              library = {
-                '{3rd}/love2d/library',
               },
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
