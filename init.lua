@@ -274,6 +274,12 @@ require('lazy').setup({
     lazy = false,
   },
   {
+    'supermaven-inc/supermaven-nvim',
+    config = function()
+      require('supermaven-nvim').setup {}
+    end,
+  },
+  {
     {
       'FabijanZulj/blame.nvim',
       lazy = false,
