@@ -176,6 +176,89 @@ vim.keymap.set('n', '<leader>t', '<cmd>cnext<CR>')
 
 vim.diagnostic.config { virtual_text = true }
 
+-- [[ Worklife docker test runner ]]
+-- Run pytest inside the per-service docker container.
+-- Service name (== container name) is derived from the file path under ~/projects/worklife/<service>/.
+local function wl_service_for(filepath)
+  return filepath:match '/projects/worklife/([^/]+)/'
+end
+
+local function wl_container_path(filepath)
+  return (filepath:gsub('.*/projects/worklife/[^/]+', '/wl'))
+end
+
+local function wl_workdir_for(service)
+  if service == 'hr' or service == 'benefit' then
+    return '/wl/app'
+  end
+  return '/wl'
+end
+
+local function wl_nearest_nodeid()
+  local node = vim.treesitter.get_node()
+  local func_name, class_name
+  while node do
+    local node_type = node:type()
+    if node_type == 'function_definition' and not func_name then
+      local name_node = node:field('name')[1]
+      if name_node then
+        func_name = vim.treesitter.get_node_text(name_node, 0)
+      end
+    elseif node_type == 'class_definition' and not class_name then
+      local name_node = node:field('name')[1]
+      if name_node then
+        class_name = vim.treesitter.get_node_text(name_node, 0)
+      end
+    end
+    node = node:parent()
+  end
+  if not func_name then
+    return nil
+  end
+  if class_name then
+    return class_name .. '::' .. func_name
+  end
+  return func_name
+end
+
+local function wl_open_term(cmd)
+  vim.cmd 'botright 15split'
+  vim.cmd('terminal ' .. cmd)
+  vim.cmd 'startinsert'
+end
+
+local function wl_run(target_fn)
+  local filepath = vim.fn.expand '%:p'
+  local service = wl_service_for(filepath)
+  if not service then
+    vim.notify('Not in a worklife project', vim.log.levels.WARN)
+    return
+  end
+  local target = target_fn(filepath)
+  if not target then
+    return
+  end
+  wl_open_term(string.format('docker exec -w %s %s pytest %s', wl_workdir_for(service), service, target))
+end
+
+vim.keymap.set('n', '<leader>nd', function()
+  wl_run(function(filepath)
+    local container_path = wl_container_path(filepath)
+    local nodeid = wl_nearest_nodeid()
+    if not nodeid then
+      vim.notify('No enclosing function under cursor', vim.log.levels.WARN)
+      return nil
+    end
+    return container_path .. '::' .. nodeid
+  end)
+end, { desc = 'Run nearest test in docker' })
+
+vim.keymap.set('n', '<leader>nf', function()
+  wl_run(function(filepath)
+    return wl_container_path(filepath)
+  end)
+end, { desc = 'Run tests in file in docker' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
