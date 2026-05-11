@@ -281,7 +281,6 @@ require('lazy').setup({
       end,
     },
   },
-  { 'nvim-neotest/neotest-python' },
   {
     'nvim-neotest/neotest',
     dependencies = {
@@ -289,10 +288,11 @@ require('lazy').setup({
       'nvim-lua/plenary.nvim',
       'antoinemadec/FixCursorHold.nvim',
       'nvim-treesitter/nvim-treesitter',
+      'nvim-neotest/neotest-python',
     },
     keys = {
-      { '<leader>nn', "<cmd>lua require('neotest').run.run()<cr>", desc = 'Run neared test' },
-      { '<leader>na', "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>", desc = 'Run neared test' },
+      { '<leader>nn', "<cmd>lua require('neotest').run.run()<cr>", desc = 'Run nearest test' },
+      { '<leader>na', "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>", desc = 'Run tests in file' },
     },
     config = function()
       require('neotest').setup {
