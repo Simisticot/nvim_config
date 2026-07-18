@@ -174,6 +174,10 @@ vim.keymap.set('n', '<leader>q', '<cmd>cclose<CR>')
 vim.keymap.set('n', '<leader>T', '<cmd>cprev<CR>')
 vim.keymap.set('n', '<leader>t', '<cmd>cnext<CR>')
 
+vim.keymap.set('n', '<leader>gh', function()
+  require('gitsigns').setqflist 'all'
+end, { desc = 'Quickfix all unstaged [G]it [H]unks' })
+
 vim.diagnostic.config { virtual_text = true }
 
 -- [[ Worklife docker test runner ]]
@@ -712,6 +716,7 @@ require('lazy').setup({
           },
         },--]]
         ruff = {},
+        pyrefly = {},
         rust_analyzer = {
           settings = {
             ['rust-analyzer'] = {
@@ -792,7 +797,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        python = { 'ruff_fix', 'black', 'ruff_organize_imports' },
+        python = { 'ruff_fix', 'ruff_format', 'ruff_organize_imports' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -905,28 +910,18 @@ require('lazy').setup({
     end,
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
+  {
     'catppuccin/nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'catppuccin-mocha'
-
-      -- You can configure highlights by doing something like:
-      vim.cmd.hi 'Comment gui=none'
     end,
   },
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
-  { -- Collection of various small independent plugins/modules
+  {
     'echasnovski/mini.nvim',
     config = function()
       -- Better Around/Inside textobjects
