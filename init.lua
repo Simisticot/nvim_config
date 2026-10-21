@@ -44,7 +44,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.diagnostic.config { virtual_text = true }
 
 vim.keymap.set('n', '<leader>v', function()
-  vim.diagnostic.jump { count = 1, float = true }
+  -- (0.12: `float = true` in JumpOpts was replaced by `on_jump`)
+  vim.diagnostic.jump { count = 1, on_jump = function() vim.diagnostic.open_float() end }
 end)
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float)
 
@@ -68,7 +69,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>')
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   local lazyrepo = 'https://github.com/folke/lazy.nvim.git'
   vim.fn.system { 'git', 'clone', '--filter=blob:none', '--branch=stable', lazyrepo, lazypath }
 end ---@diagnostic disable-next-line: undefined-field
@@ -107,7 +108,6 @@ require('lazy').setup({
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
     event = 'VimEnter',
-    branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
       'nvim-telescope/telescope-fzf-native.nvim',
@@ -149,11 +149,10 @@ require('lazy').setup({
   {
     'neovim/nvim-lspconfig',
     dependencies = {
-      'williamboman/mason.nvim',
-      'williamboman/mason-lspconfig.nvim',
-      'WhoIsSethDaniel/mason-tool-installer.nvim',
+      'mason-org/mason.nvim',
+      'mason-org/mason-lspconfig.nvim',
+      { 'WhoIsSethDaniel/mason-tool-installer.nvim', opts = {} },
       { 'j-hui/fidget.nvim', opts = {} },
-      { 'folke/neodev.nvim', opts = {} },
     },
     config = function()
       --  This function gets run when an LSP attaches to a particular buffer.
@@ -164,7 +163,7 @@ require('lazy').setup({
         group = vim.api.nvim_create_augroup('simisticot-lsp-attach', { clear = true }),
         callback = function(event)
           local map = function(keys, func, desc)
-            vim.keymap.set('n', keys, func, { buffer = event.buf })
+            vim.keymap.set('n', keys, func, { buf = event.buf })
           end
 
           -- Jump to the definition of the word under your cursor.
@@ -210,70 +209,59 @@ require('lazy').setup({
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client.server_capabilities.documentHighlightProvider then
+          if client and client:supports_method('textDocument/documentHighlight', event.buf) then
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-              buffer = event.buf,
+              buf = event.buf,
               callback = vim.lsp.buf.document_highlight,
             })
 
             vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-              buffer = event.buf,
+              buf = event.buf,
               callback = vim.lsp.buf.clear_references,
             })
           end
         end,
       })
 
-      -- LSP servers and clients are able to communicate to each other what features they support.
-      --  By default, Neovim doesn't support everything that is in the LSP specification.
-      --  When you add nvim-cmp, luasnip, etc. Neovim now has *more* capabilities.
-      --  So, we create new capabilities with nvim cmp, and then broadcast that to the servers.
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+      require('mason').setup()
 
-      local servers = {
-        ruff = {},
-        pyrefly = {},
-        rust_analyzer = {
-          settings = {
-            ['rust-analyzer'] = {
-              cargo = { allFeatures = true },
-              checkOnSave = true,
-            },
+      local servers = { 'ruff', 'pyrefly', 'rust_analyzer', 'lua_ls' }
+      require('mason-tool-installer').setup { ensure_installed = servers }
+
+      -- Servers are configured declaratively via vim.lsp.config (0.11+ / required for 0.13)
+      -- and attached automatically via vim.lsp.enable.
+      vim.lsp.config('*', {
+        -- Advertise extra capabilities from nvim-cmp to all servers.
+        capabilities = require('cmp_nvim_lsp').default_capabilities(),
+      })
+      vim.lsp.config.rust_analyzer = {
+        settings = {
+          ['rust-analyzer'] = {
+            cargo = { allFeatures = true },
+            checkOnSave = true,
           },
         },
-
-        lua_ls = {
-          settings = {
-            Lua = {
-              completion = {
-                callSnippet = 'Replace',
-              },
+      }
+      vim.lsp.config.lua_ls = {
+        settings = {
+          Lua = {
+            completion = {
+              callSnippet = 'Replace',
             },
           },
         },
       }
-      require('mason').setup()
 
-      local ensure_installed = vim.tbl_keys(servers or {})
-      require('mason-tool-installer').setup { ensure_installed = ensure_installed }
-
+      -- Installs missing servers via mason, then auto-calls vim.lsp.enable() on them
+      -- (replaces the removed mason-lspconfig `handlers` option).
       require('mason-lspconfig').setup {
-        ensure_installed = ensure_installed,
-        automatic_installation = {},
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
+        ensure_installed = servers,
+        automatic_enable = true,
       }
     end,
   },
   {
     'stevearc/conform.nvim',
-    version = '8.4.0',
     opts = {
       notify_on_error = false,
       format_on_save = function(bufnr)
@@ -301,14 +289,7 @@ require('lazy').setup({
           end
           return 'make install_jsregexp'
         end)(),
-        dependencies = {
-          {
-            'rafamadriz/friendly-snippets',
-            config = function()
-              require('luasnip.loaders.from_vscode').lazy_load()
-            end,
-          },
-        },
+        dependencies = {},
       },
       'saadparwaiz1/cmp_luasnip',
       'hrsh7th/cmp-nvim-lsp',
@@ -378,19 +359,33 @@ require('lazy').setup({
   },
   {
     'nvim-treesitter/nvim-treesitter',
+    branch = 'main', -- the old `master` branch is frozen and doesn't support Nvim 0.13
     build = ':TSUpdate',
-    opts = {
-      ensure_installed = { 'bash', 'c', 'html', 'lua', 'markdown', 'vim', 'vimdoc' },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
-        enable = true,
-      },
-      indent = { enable = true },
-    },
-    config = function(_, opts)
-      ---@diagnostic disable-next-line: missing-fields
-      require('nvim-treesitter.configs').setup(opts)
+    config = function()
+      require('nvim-treesitter').setup {}
+
+      -- Install parsers (async; no-op if already installed).
+      require('nvim-treesitter').install {
+        'bash',
+        'c',
+        'html',
+        'lua',
+        'markdown',
+        'markdown_inline',
+        'python',
+        'rust',
+        'vim',
+        'vimdoc',
+      }
+
+      -- Highlighting and indentation are now provided by core/functions instead
+      -- of the old plugin modules (`highlight = { enable = true }`, etc).
+      vim.api.nvim_create_autocmd('FileType', {
+        callback = function()
+          pcall(vim.treesitter.start) -- pcall: some filetypes have no installed parser
+          vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
+      })
     end,
   },
 }, {
