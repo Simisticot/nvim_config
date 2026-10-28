@@ -45,7 +45,12 @@ vim.diagnostic.config { virtual_text = true }
 
 vim.keymap.set('n', '<leader>v', function()
   -- (0.12: `float = true` in JumpOpts was replaced by `on_jump`)
-  vim.diagnostic.jump { count = 1, on_jump = function() vim.diagnostic.open_float() end }
+  vim.diagnostic.jump {
+    count = 1,
+    on_jump = function()
+      vim.diagnostic.open_float()
+    end,
+  }
 end)
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float)
 
@@ -88,6 +93,15 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+    },
+  },
+  {
+    'linrongbin16/gitlinker.nvim',
+    cmd = 'GitLink',
+    opts = {},
+    keys = {
+      { '<leader>gy', '<cmd>GitLink<cr>', mode = { 'n', 'v' }, desc = 'Yank git link' },
+      { '<leader>gY', '<cmd>GitLink default_branch<cr>', mode = { 'n', 'v' }, desc = 'Yank git link on default branch' },
     },
   },
   {
